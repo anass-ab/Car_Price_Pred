@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Car Price Prediction</title>
+</head>
+<body>
+    <h1>Car Price Prediction</h1>
+    <form id="predictionForm">
+        <label for="Brand">Brand:</label><br>
+        <select id="Brand" name="Brand">
+            <option value="Toyota">Toyota</option>
+            <option value="Honda">Honda</option>
+            <option value="Ford">Ford</option>
+            <option value="BMW">BMW</option>
+            <option value="Mercedes-Benz">Mercedes-Benz</option>
+            <option value="Audi">Audi</option>
+            <option value="Nissan">Nissan</option>
+        </select><br><br>
+
+        <label for="Model">Model:</label><br>
+        <select id="Model" name="Model">
+            <option value="Camry">Camry</option>
+            <option value="Civic">Civic</option>
+            <option value="F-150">F-150</option>
+            <option value="3 Series">3 Series</option>
+            <option value="C-Class">C-Class</option>
+            <option value="A4">A4</option>
+            <option value="Altima">Altima</option>
+        </select><br><br>
+
+        <label for="Year">Year:</label><br>
+        <input type="number" id="Year" name="Year" min="1900" max="2025"><br><br>
+
+        <label for="Engine_Size">Engine Size:</label><br>
+        <input type="number" id="Engine_Size" name="Engine_Size" step="0.1"><br><br>
+
+        <label for="Fuel_Type">Fuel Type:</label><br>
+        <select id="Fuel_Type" name="Fuel_Type">
+            <option value="Gasoline">Gasoline</option>
+            <option value="Diesel">Diesel</option>
+            <option value="CNG">CNG</option>
+            <option value="Petrol">Petrol</option>
+            <option value="Hybrid">Hybrid</option>
+        </select><br><br>
+
+        <label for="Transmission">Transmission:</label><br>
+        <select id="Transmission" name="Transmission">
+            <option value="Automatic">Automatic</option>
+            <option value="Manual">Manual</option>
+            <option value="CVT">CVT</option>
+            <option value="Semi-Automatic">Semi-Automatic</option>
+        </select><br><br>
+
+        <label for="Mileage">Mileage:</label><br>
+        <input type="number" id="Mileage" name="Mileage" min="0"><br><br>
+
+        <label for="Doors">Doors:</label><br>
+        <input type="number" id="Doors" name="Doors" min="1" max="5"><br><br>
+
+        <label for="Owner_Count">Owner Count:</label><br>
+        <input type="number" id="Owner_Count" name="Owner_Count" min="0"><br><br>
+
+        <button type="button" id="predictButton">Predict Price</button>
+        <button type="button" id="clearButton">Clear</button>
+    </form>
+
+    <div id="predictionResult"></div>
+    <div id="predictedPriceBox" style="border: 1px solid black; padding: 10px; margin-top: 10px; width: 300px; display: none;">
+        Predicted Price: <span id="priceValue"></span>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get form and buttons
+            const form = document.getElementById('predictionForm');
+            const predictButton = document.getElementById('predictButton');
+            const clearButton = document.getElementById('clearButton');
+            const predictionResult = document.getElementById('predictionResult');
+            const predictedPriceBox = document.getElementById('predictedPriceBox');
+            const priceValue = document.getElementById('priceValue');
+            
+            // Predict button event listener
+            predictButton.addEventListener('click', function() {
+                // Validate form inputs before submission
+                if (!validateForm()) {
+                    predictionResult.innerText = 'Please fill in all required fields correctly.';
+                    predictionResult.style.color = 'red';
+                    return;
+                }
+                
+                // Create FormData object
+                const formData = new FormData(form);
+                
+                // Send to server
+                fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams(formData).toString()
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Display prediction
+                    if (data && data.prediction) {
+                        priceValue.innerText = data.prediction;
+                        predictedPriceBox.style.display = 'block';
+                        predictionResult.innerText = '';
+                    } else {
+                        throw new Error('Invalid response data');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    predictionResult.innerText = 'An error occurred while getting the prediction. Please try again.';
+                    predictionResult.style.color = 'red';
+                    
+                    // For testing purposes only - remove in production
+                    // This simulates a successful prediction when the server is not available
+                    setTimeout(() => {
+                        const mockPrice = calculateMockPrice();
+                        priceValue.innerText = '$' + mockPrice.toLocaleString();
+                        predictedPriceBox.style.display = 'block';
+                    }, 500);
+                });
+            });
+            
+            // Clear button event listener
+            clearButton.addEventListener('click', function() {
+                // Reset form fields
+                form.reset();
+                
+                // Clear prediction
+                predictionResult.innerText = '';
+                predictedPriceBox.style.display = 'none';
+                priceValue.innerText = '';
+            });
+            
+            // Form validation function
+            function validateForm() {
+                const year = document.getElementById('Year').value;
+                const engineSize = document.getElementById('Engine_Size').value;
+                const mileage = document.getElementById('Mileage').value;
+                const doors = document.getElementById('Doors').value;
+                const ownerCount = document.getElementById('Owner_Count').value;
+                
+                // Check required fields
+                if (!year || !engineSize || !mileage || !doors || !ownerCount) {
+                    return false;
+                }
+                
+                // Check numeric values
+                if (isNaN(year) || isNaN(engineSize) || isNaN(mileage) || 
+                    isNaN(doors) || isNaN(ownerCount)) {
+                    return false;
+                }
+                
+                return true;
+            }
+            
+            // Mock price calculation for testing - remove in production
+            function calculateMockPrice() {
+                const brand = document.getElementById('Brand').value;
+                const model = document.getElementById('Model').value;
+                const year = parseInt(document.getElementById('Year').value);
+                const mileage = parseInt(document.getElementById('Mileage').value);
+                
+                let basePrice = 0;
+                
+                // Simple logic for mock price
+                switch(brand) {
+                    case 'BMW':
+                    case 'Mercedes-Benz':
+                    case 'Audi':
+                        basePrice = 45000;
+                        break;
+                    case 'Toyota':
+                    case 'Honda':
+                    case 'Nissan':
+                        basePrice = 25000;
+                        break;
+                    case 'Ford':
+                        basePrice = 35000;
+                        break;
+                }
+                
+                // Adjust for year and mileage
+                const yearFactor = Math.min(1, (2025 - year) * 0.05);
+                const mileageFactor = Math.min(1, mileage / 100000);
+                
+                return Math.round(basePrice * (1 - yearFactor) * (1 - mileageFactor * 0.5));
+            }
+        });
+    </script>
+</body>
+</html>
